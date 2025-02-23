@@ -1,4 +1,8 @@
+import json
+import os
+
 import cv2
+import numpy as np
 from paddleocr import PaddleOCR
 
 ocr = PaddleOCR(use_angle_cls=True, lang="ch")
@@ -11,3 +15,8 @@ def ocr_img(image_path):
     # 识别图片中的文字
     result = ocr.ocr(img)
     return result[0]
+
+
+if __name__ == '__main__':
+    result = ocr_img("pic/screenshot.png")
+    print("ocr reuslt:"+str(json.dumps(result)))

@@ -175,14 +175,13 @@ class Fudai:
             time.sleep(60)
 
     def check_have_fudai(self):
-        loop = 0
-        while loop < 6:  # 每3秒识别一次，最多等待18秒
-            time.sleep(1.5)
+        for i in range(6):  # 每次增加1.5秒，最多等待18秒
+            sleep_time = 1.5 * (i + 1)
+            time.sleep(sleep_time)
             self.get_screenshot('获取福袋')
             rect = cv_util.zhaotu(jietu, "pic/fudai.png")
             if rect is not None:
                 return rect
-            loop += 1
         return None
 
     def meiyouchouzhong(self):

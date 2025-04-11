@@ -157,7 +157,7 @@ class Fudai:
             else:
                 print("     未找到数丝团按钮，直接点击固定位置")
                 os.system(
-                    "adb -s {} shell input tap 430 368".format(
+                    "adb -s {} shell input tap 660 368".format(
                         self.device_id
                     )
                 )

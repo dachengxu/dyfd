@@ -57,38 +57,47 @@ class Fudai:
         pass
 
     def get_screenshot(self, tip=''):
-        """截图3个adb命令需要2S左右的时间"""
+        """获取设备屏幕截图
+        Args:
+            tip: 截图说明文字
+        Returns:
+            bool: 截图是否成功
+        """
         path = base_dir + "/pic"
+        screenshot_path = "/sdcard/DCIM/screenshot.png"
+        
+        # 确保本地目录存在
         if not os.path.exists(path):
             os.makedirs(path)
+            
         try:
-            subprocess.Popen(
-                "adb -s %s shell screencap -p /sdcard/DCIM/screenshot.png"
-                % self.device_id,
-                shell=True,
-            ).wait()  # -p: save the file as a png
-            subprocess.Popen(
-                "adb -s %s pull /sdcard/DCIM/screenshot.png %s "
-                % (self.device_id, path),
+            # 截图到设备
+            result = subprocess.Popen(
+                f"adb -s {self.device_id} shell screencap -p {screenshot_path}",
+                shell=True
+            ).wait()
+                
+            # 拉取到本地
+            result = subprocess.Popen(
+                f"adb -s {self.device_id} pull {screenshot_path} {path}",
                 stdout=subprocess.PIPE,
-                shell=True,
+                shell=True
             ).wait()
+                
             timetag = datetime.now().strftime("%H:%M:%S")
-            print("{}【{}】屏幕截图".format(timetag, tip))
+            print(f"{timetag}【{tip}】屏幕截图成功")
             return True
-        # subprocess.Popen('adb  -s %s shell rm /sdcard/DCIM/screenshot.png' % self.device_id, shell=True).wait()
-        except:
+            
+        except Exception as e:
+            print(f"截图出错: {e}")
+            
+            # 清理可能存在的文件
             subprocess.Popen(
-                "adb -s %s shell screencap -p /sdcard/DCIM/screenshot1.png"
-                % self.device_id,
-                shell=True,
+                f"adb -s {self.device_id} shell rm {screenshot_path}",
+                shell=True
             ).wait()
-            subprocess.Popen(
-                "adb -s %s shell mv /sdcard/DCIM/screenshot1.png /sdcard/DCIM/screenshot.png"
-                % self.device_id,
-                shell=True,
-            ).wait()
-            self.get_screenshot()
+            
+            return False
 
     def open_zhibo(self):
         # adb shell reboot
@@ -99,16 +108,13 @@ class Fudai:
             # 解锁，并尝试打开抖音
             print("step1: 解锁，并尝试打开抖音")
             os.system(
-                "adb -s %s shell input keyevent KEYCODE_WAKEUP"
-                % self.device_id
+                f"adb -s {self.device_id} shell input keyevent KEYCODE_WAKEUP"
                 ) # -p: save the file as a png
             os.system(
-                "adb -s %s shell input swipe 300 1000 300 500"
-                % self.device_id
+                f"adb -s {self.device_id} shell input swipe 300 1000 300 500"
                 )
             os.system(
-                "adb -s %s shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity"
-                % self.device_id
+                f"adb -s {self.device_id} shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity"
             )
 
             time.sleep(30)
@@ -124,17 +130,13 @@ class Fudai:
                     xy = cv2.minAreaRect(np.float32(item[0]))
                     print("     找到'关注'按钮，开始点击"+str(xy))
                     os.system(
-                        "adb -s {} shell input tap {} {}".format(
-                            self.device_id, xy[0][0], xy[0][1]
-                        )
+                        f"adb -s {self.device_id} shell input tap {xy[0][0]} {xy[0][1]}"
                     )
                     break
             else:
                 print("     未找到'关注'按钮， 点击固定位置")
                 os.system(
-                    "adb -s {} shell input tap 444 159".format(
-                        self.device_id
-                    )
+                    f"adb -s {self.device_id} shell input tap 444 159"
                 )
 
             self.get_screenshot('首页')
@@ -166,8 +168,7 @@ class Fudai:
             print(ex)
 
             subprocess.Popen(
-                "adb -s %s shell reboot"
-                % self.device_id
+                f"adb -s {self.device_id} shell reboot"
             ).wait()  # -p: save the file as a png
 
             print('尝试恢复失败， 让设备重新启动 ！！！！ 并等待 60s')
@@ -295,12 +296,16 @@ class Fudai:
                         break
                     elif xy[0] == 0:
                         os.system(
+                            "adb -s {} shell input tap {} {}".format(
+                                self.device_id, xy[1][0], xy[1][1]
+                            )
+                        )
+                        print("加入粉丝团")
+                        time.sleep(5)
+                        os.system(
                             "adb -s {} shell input keyevent 4".format(self.device_id)
                         )
-                        self.switch_direction_flag = not self.switch_direction_flag
-                        time.sleep(1)
-                        self.qiehuanzhibojian()
-                        print("加入粉丝团? => 后退 => 切换直播间")
+                        print("加入粉丝团 => 后退")
                     elif xy[0] == 2:
                         os.system(
                             "adb -s {} shell input keyevent 4".format(self.device_id)
@@ -334,13 +339,17 @@ class Fudai:
 
             xy = self.zhibojieshu()
             if xy:
-                self.qiehuanzhibojian()
+                os.system(
+                    "adb -s %s shell input swipe 760 1600 760 800 200"
+                    % (self.device_id)
+                )
+                print("切换直播间")
                 time.sleep(5)
                 pass
 
             zhongjiang_count += 1
 
-            if zhongjiang_count > 12:
+            if zhongjiang_count > 4:
                 self.qiehuanzhibojian()
                 time.sleep(5)
                 zhongjiang_count = 0

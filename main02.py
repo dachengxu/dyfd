@@ -117,8 +117,7 @@ class Fudai:
                 f"adb -s {self.device_id} shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity"
             )
 
-            time.sleep(30)
-
+            time.sleep(15)
 
             self.get_screenshot('首页')
             result = ocr_util.ocr_img(jietu)
@@ -126,7 +125,7 @@ class Fudai:
             for idx in range(len(result)):
                 item = result[idx]
                 text = item[1][0]
-                if text == "关注":
+                if text == "关注" or text == "特关":
                     xy = cv2.minAreaRect(np.float32(item[0]))
                     print("     找到'关注'按钮，开始点击"+str(xy))
                     os.system(

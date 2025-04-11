@@ -54,6 +54,7 @@ class Fudai:
         self.device_id = select_device()
         self.needswitch = False
         self.switch_direction_flag = True
+        self.cnt_qie_huan_zhi_bo_jian = 0
         pass
 
     def get_screenshot(self, tip=''):
@@ -244,12 +245,14 @@ class Fudai:
                 "adb -s %s shell input swipe 760 800 760 1600 200"
                 % (self.device_id)
             )
+            
+        self.cnt_qie_huan_zhi_bo_jian += 1
         print("切换直播间")
 
     def choujiang(self):
         """默认不切换直播间"""
         zhongjiang_count = 0
-        while True:
+        while True and self.cnt_qie_huan_zhi_bo_jian < 20:
             rect = self.check_have_fudai()
             shijian = ""
             shijian_seconds = -1

@@ -53,9 +53,6 @@ class Fudai:
     def __init__(self):
         self.device_id = select_device()
         self.needswitch = False
-        self.switch_direction_flag = True
-        self.cnt_qie_huan_zhi_bo_jian = 0
-        pass
 
     def get_screenshot(self, tip=''):
         """获取设备屏幕截图
@@ -101,22 +98,25 @@ class Fudai:
             return False
 
     def open_zhibo(self):
-        # adb shell reboot
-        # adb shell input keyevent KEYCODE_WAKEUP
-        # adb shell input swipe 300 1000 300 500
-        # adb shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity
         try:
             # 解锁，并尝试打开抖音
             print("step1: 解锁，并尝试打开抖音")
-            os.system(
-                f"adb -s {self.device_id} shell input keyevent KEYCODE_WAKEUP"
-                ) # -p: save the file as a png
-            os.system(
-                f"adb -s {self.device_id} shell input swipe 300 1000 300 500"
-                )
-            os.system(
-                f"adb -s {self.device_id} shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity"
-            )
+            # 解锁
+            subprocess.Popen(
+                f"adb -s {self.device_id} shell input keyevent KEYCODE_WAKEUP", shell=True
+                ).wait()
+            # 滑动解锁
+            subprocess.Popen(
+                f"adb -s {self.device_id} shell input swipe 300 1000 300 500", shell=True
+                ).wait()
+            # 关闭抖音
+            subprocess.Popen(
+                f"adb shell am force-stop com.ss.android.ugc.aweme.lite", shell=True
+                ).wait()
+            # 打开抖音
+            subprocess.Popen(
+                f"adb -s {self.device_id} shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity", shell=True
+            ).wait()
 
             time.sleep(15)
 
@@ -135,9 +135,9 @@ class Fudai:
                     break
             else:
                 print("     未找到'关注'按钮， 点击固定位置")
-                os.system(
-                    f"adb -s {self.device_id} shell input tap 444 159"
-                )
+                subprocess.Popen(
+                    f"adb -s {self.device_id} shell input tap 444 159", shell=True
+                ).wait()
 
             self.get_screenshot('首页')
             result = ocr_util.ocr_img(jietu)
@@ -149,31 +149,27 @@ class Fudai:
                 if text == "粉丝团":
                     xy = cv2.minAreaRect(np.float32(item[0]))
                     print("     找到'粉丝团'按钮，开始点击"+str(xy))
-                    os.system(
-                        "adb -s {} shell input tap {} {}".format(
-                            self.device_id, xy[0][0], xy[0][1]
-                        )
-                    )
+                    subprocess.Popen(
+                        f"adb -s {self.device_id} shell input tap {xy[0][0]} {xy[0][1]}", shell=True
+                    ).wait()
                     break
             else:
                 print("     未找到数丝团按钮，直接点击固定位置")
-                os.system(
-                    "adb -s {} shell input tap 660 368".format(
-                        self.device_id
-                    )
-                )
+                subprocess.Popen(
+                    f"adb -s {self.device_id} shell input tap 660 368", shell=True
+                ).wait()
 
             return True
         except Exception as ex:
             print(ex)
 
-            subprocess.Popen(
-                f"adb -s {self.device_id} shell reboot"
-            ).wait()  # -p: save the file as a png
+            # subprocess.Popen(
+            #     f"adb -s {self.device_id} shell reboot"
+            # ).wait()  # -p: save the file as a png
 
-            print('尝试恢复失败， 让设备重新启动 ！！！！ 并等待 60s')
+            # print('尝试恢复失败， 让设备重新启动 ！！！！ 并等待 60s')
 
-            time.sleep(60)
+            # time.sleep(60)
 
     def check_have_fudai(self):
         for i in range(6):  # 每次增加1.5秒，最多等待18秒
@@ -235,28 +231,32 @@ class Fudai:
         return None
 
     def qiehuanzhibojian(self):
-        if self.switch_direction_flag:
-            os.system(
-                "adb -s %s shell input swipe 760 1600 760 800 200"
-                % (self.device_id)
-            )
-        else:
-            os.system(
-                "adb -s %s shell input swipe 760 800 760 1600 200"
-                % (self.device_id)
-            )
+        subprocess.Popen(
+            f"adb -s {self.device_id} shell input swipe 760 800 760 1600 200", shell=True
+        ).wait()
             
-        self.cnt_qie_huan_zhi_bo_jian += 1
         print("切换直播间")
 
     def choujiang(self):
         """默认不切换直播间"""
         zhongjiang_count = 0
-        while True and self.cnt_qie_huan_zhi_bo_jian < 20:
+        start_time = time.time()
+        while True:
             rect = self.check_have_fudai()
             shijian = ""
             shijian_seconds = -1
             while True:
+                if time.time() - start_time > 2 * 3600:
+                    print("超过2小时，重启设备")
+                    subprocess.Popen(
+                            f"adb -s {self.device_id} shell reboot"
+                        ).wait()
+                    
+                    time.sleep(60)
+
+                    raise Exception("运行超过2h, 重启设备")
+                
+                
                 if rect:
                     os.system(
                         "adb -s {} shell input tap {} {}".format(
@@ -340,10 +340,9 @@ class Fudai:
 
             xy = self.zhibojieshu()
             if xy:
-                os.system(
-                    "adb -s %s shell input swipe 760 1600 760 800 200"
-                    % (self.device_id)
-                )
+                subprocess.Popen(
+                    f"adb -s {self.device_id} shell input swipe 760 1600 760 800 200", shell=True
+                ).wait()
                 print("切换直播间")
                 time.sleep(5)
                 pass
@@ -351,7 +350,10 @@ class Fudai:
             zhongjiang_count += 1
 
             if zhongjiang_count > 4:
-                self.qiehuanzhibojian()
+                subprocess.Popen(
+                    f"adb -s {self.device_id} shell input swipe 760 1600 760 800 200", shell=True
+                ).wait()
+                print("切换直播间")           
                 time.sleep(5)
                 zhongjiang_count = 0
                 pass
@@ -359,7 +361,6 @@ class Fudai:
 
 def main():
     fudai = Fudai()
-    # fudai.open_zhibo()
     fudai.choujiang()
 
 
@@ -376,8 +377,3 @@ if __name__ == "__main__":
                 Fudai().open_zhibo()
         except Exception as ex:
             print(ex)
-
-# adb shell reboot
-# adb shell input keyevent KEYCODE_WAKEUP
-# adb shell input swipe 300 1000 300 500
-# adb shell am start -n com.ss.android.ugc.aweme.lite/com.ss.android.ugc.aweme.splash.SplashActivity

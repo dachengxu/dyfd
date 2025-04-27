@@ -4,6 +4,10 @@ import os
 import cv2
 import numpy as np
 from paddleocr import PaddleOCR
+import logging
+
+logging.disable(logging.WARNING)  # Disable logging
+logging.disable(logging.DEBUG)
 
 ocr = PaddleOCR(use_angle_cls=True, lang="ch")
 
